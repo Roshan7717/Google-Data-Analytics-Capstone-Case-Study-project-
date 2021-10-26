@@ -4,25 +4,23 @@ install.packages("dplyr")
 library(dplyr)
 library(tidyverse) #helps wrangle data
 library(lubridate) #helps wrangle date attributes
-library(skimr) #get summary data
-library
 install.packages("skimr")
 library(skimr)
 library(ggplot2)
 
 #STEP 1: COLLECT DATA
-Trips_Apr20 <- read_csv('202004-divvy-tripdata.csv')
-Trips_May20 <- read_csv('202005-divvy-tripdata.csv')
-Trips_June20 <- read_csv('202006-divvy-tripdata.csv')
-Trips_July20 <- read_csv('202007-divvy-tripdata.csv')
-Trips_Aug20 <- read_csv('202008-divvy-tripdata.csv')
-Trips_Sep20 <- read_csv('202009-divvy-tripdata.csv')
-Trips_Oct20 <- read_csv('202010-divvy-tripdata.csv')
-Trips_Nov20 <- read_csv('202011-divvy-tripdata.csv')
-Trips_Dec20 <- read_csv('202012-divvy-tripdata.csv')
-Trips_Jan21 <- read_csv('202101-divvy-tripdata.csv')
-Trips_Feb21 <- read_csv('202102-divvy-tripdata.csv')
-Trips_Mar21 <- read_csv('202103-divvy-tripdata.csv')
+Trips_Apr20 <- read.csv('202004-divvy-tripdata.csv')
+Trips_May20 <- read.csv('202005-divvy-tripdata.csv')
+Trips_June20 <- read.csv('202006-divvy-tripdata.csv')
+Trips_July20 <- read.csv('202007-divvy-tripdata.csv')
+Trips_Aug20 <- read.csv('202008-divvy-tripdata.csv')
+Trips_Sep20 <- read.csv('202009-divvy-tripdata.csv')
+Trips_Oct20 <- read.csv('202010-divvy-tripdata.csv')
+Trips_Nov20 <- read.csv('202011-divvy-tripdata.csv')
+Trips_Dec20 <- read.csv('202012-divvy-tripdata.csv')
+Trips_Jan21 <- read.csv('202101-divvy-tripdata.csv')
+Trips_Feb21 <- read.csv('202102-divvy-tripdata.csv')
+Trips_Mar21 <- read.csv('202103-divvy-tripdata.csv')
 
 #STEP 2: WRANGLE DATA AND COMBINE INTO A SINGLE FILE
 colnames(Trips_Apr20)
@@ -104,21 +102,24 @@ all_trips$month <- format(as.Date(all_trips$date), "%m")
 all_trips$day <- format(as.Date(all_trips$date), "%d")
 all_trips$year <- format(as.Date(all_trips$date), "%Y")
 all_trips$day_of_week <- format(as.Date(all_trips$date), "%A")
-tripdata_cleaned$weekday <- format(as.Date(tripdata_cleaned$date), "%u")
 
-#“ride_length” calculation
+
+#"ride_length" calculation
 all_trips$ride_length <- difftime(all_trips$end_time,all_trips$start_time)
 is.factor(all_trips$ride_length)
 all_trips$ride_length <- as.numeric(as.character(all_trips$ride_length))
 
 #To remove negative values
 all_trips_v2 <- all_trips[!(all_trips$ride_length<0),] 
-write.csv(all_trips_v2, "data.csv")
+write.csv(tripdata_cleaned, "tripdata_cleaned.csv")
 
-# Remove rows with missing values
+`# Remove rows with missing values
 colSums(is.na(all_trips))
 tripdata_cleaned <- all_trips_v2[complete.cases(all_trips_v2), ]
 skim(tripdata_cleaned)
+
+#adding weekday
+tripdata_cleaned$weekday <- format(as.Date(tripdata_cleaned$date), "%u")
 
 #STEP 4: CONDUCT DESCRIPTIVE ANALYSIS
 summary(tripdata_cleaned$ride_length)
@@ -158,3 +159,40 @@ tripdata_cleaned %>%
        subtitle = "Members versus Casual Users") +
   ylab("Number of Rides") +
   xlab("Day of Week")
+
+# visualization for average duration
+tripdata_cleaned %>% 
+  group_by(usertype, weekday) %>% 
+  summarize(number_of_rides = n(),
+            average_duration = mean(ride_length)) %>% 
+  arrange(usertype, weekday) %>% 
+  ggplot(aes(x = weekday, y = average_duration, fill =usertype )) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c("#CC6633","#6699CC")) +
+  labs(title = "Number of Rides by Days and Rider Type",
+       subtitle = "Members versus Casual Users") +
+  ylab("Number of Rides") +
+  xlab("Day of Week")
+
+
+#visualizing freq of with which casual and members use ride_types 
+ggplot(tripdata_cleaned) + geom_bar(mapping =  aes(x=day_of_week,fill = ride_type)) + facet_wrap(~usertype)
+
+install.packages("lubridate")
+library(lubridate)
+
+#Total number of trips by by time of day  
+total_rides_hour <- tripdata_cleaned %>% 
+  mutate(hour = as.factor(hour(start_time))) %>%
+  group_by(usertype, hour) %>%
+ summarise(number_of_rides = n(), average_duration = mean(ride_length), .groups = 'drop') %>%
+  arrange(usertype, hour)
+
+ ggplot(data = total_rides_hour) +
+  geom_line(mapping = aes(x = hour, y = number_of_rides, group = usertype, color = usertype ))  +
+  labs(title = "Total Number of Trips by Time of Day",
+       subtitle = "Comparing Members vs. Casual Riders",
+       caption = "Data from Q2 2019 - Q1 2020",
+       x = "Hour(24)",
+       y = "Total Trips (count)")
+
