@@ -7,6 +7,8 @@ library(lubridate) #helps wrangle date attributes
 install.packages("skimr")
 library(skimr)
 library(ggplot2)
+install.packages("lubridate")
+library(lubridate)
 
 #STEP 1: COLLECT DATA
 Trips_Apr20 <- read.csv('202004-divvy-tripdata.csv')
